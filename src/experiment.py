@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from pathlib import Path
+from tqdm import tqdm
 import xgboost as xgb
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
@@ -14,14 +16,23 @@ from parameter_fit import *
 import warnings
 warnings.filterwarnings("ignore")
 
+def load_data(name="charles_oneill"):
+    # load training data
+    train = pd.read_csv(f"~/intertemporal/data/{name}_train.csv")
+    cols = ["SIR", "LDR", "Delay", "Answer"]
+    # load testing data
+    test = pd.read_csv(f"~/intertemporal/data/{name}_test.csv")
+    return train[cols], test[cols]
+
 class Experiment:
     
-    def __init__(self, train, test, model):
+    def __init__(self, train, test, model, scale=20):
         self.train = train
         self.test = test
         self.X_train, self.y_train = train.drop(columns=['Answer']), train.Answer.values
         self.X_test, self.y_test = test.drop(columns=['Answer']), test.Answer.values
         self.model = model
+        self.scale = scale
         
     def normalise(self):
         trans_train = Normalizer().fit(self.X_train)
@@ -32,10 +43,10 @@ class Experiment:
     
     def normalise_params(self):
         train, test = self.train.copy(), self.test.copy()
-        train.SIR /= 10
-        train.LDR /= 10
-        test.SIR /= 10
-        test.LDR /= 10
+        train.SIR /= self.scale
+        train.LDR /= self.scale
+        test.SIR /= self.scale
+        test.LDR /= self.scale
         return train, test
     
     def run(self):
@@ -50,3 +61,40 @@ class Experiment:
         param_preds = param.fit()
         param_accuracy = accuracy_score(param_preds, self.y_test)
         return model_accuracy, param_accuracy
+
+class ExperimentCollection:
+
+    def __init__(self, dataset, test_size=0.25):
+        self.data = dataset
+        self.X = dataset.drop(columns=['Answer'])
+        self.y = dataset['Answer'].values
+        self.test_size = test_size
+
+    def cross_val(self, n_iters=10):
+        model_accs, param_accs = np.zeros(n_iters), np.zeros(n_iters)
+        for i in range(n_iters):
+            train, test, y_train, y_test = train_test_split(self.X, self.y, 
+                                                                test_size=self.test_size)
+            train["Answer"], test["Answer"] = y_train, y_test
+            model = xgb.XGBClassifier(verbosity=0)
+            exp = Experiment(train, test, model, scale=50)
+            model_accs[i], param_accs[i] = exp.run()
+        return model_accs, param_accs
+
+if __name__ == "__main__":
+    cwd = Path.home()
+    names_path = cwd.joinpath("intertemporal/data/names.txt")
+    file = open(names_path,"r")
+    names = file.readlines()
+    names = [element.strip() for element in names]
+    for name in names:
+        print(name)
+        train, test = load_data(name)
+        df = pd.concat([train, test])
+        exp_collect = ExperimentCollection(df)
+        model_accs, param_accs = exp_collect.cross_val(n_iters=10)
+        print("MODEL: %0.2f accuracy with a standard deviation of %0.2f" % (model_accs.mean(), model_accs.std()))
+        print("TRADITIONAL: %0.2f accuracy with a standard deviation of %0.2f" % (param_accs.mean(), param_accs.std()))
+        print(15*"-")
+
+        

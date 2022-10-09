@@ -29,8 +29,8 @@ class ParameterFit:
         return 1 if value >= 0 else 0
     
     def fit(self):
-        k_0 = 0.001
-        res = minimize(self.generate_log_likelihood, k_0, args=(self.train), method='BFGS')
+        k_0 = 0.01
+        res = minimize(self.generate_log_likelihood, k_0, args=(self.train))
         k_fit = res.x[0]
         preds = self.test.apply(self.simulate_choice, k=k_fit, axis=1)
         return preds
