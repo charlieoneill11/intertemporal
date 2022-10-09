@@ -81,20 +81,39 @@ class ExperimentCollection:
             model_accs[i], param_accs[i] = exp.run()
         return model_accs, param_accs
 
-if __name__ == "__main__":
-    cwd = Path.home()
-    names_path = cwd.joinpath("intertemporal/data/names.txt")
-    file = open(names_path,"r")
-    names = file.readlines()
-    names = [element.strip() for element in names]
-    for name in names:
-        print(name)
-        train, test = load_data(name)
-        df = pd.concat([train, test])
-        exp_collect = ExperimentCollection(df)
-        model_accs, param_accs = exp_collect.cross_val(n_iters=10)
-        print("MODEL: %0.2f accuracy with a standard deviation of %0.2f" % (model_accs.mean(), model_accs.std()))
-        print("TRADITIONAL: %0.2f accuracy with a standard deviation of %0.2f" % (param_accs.mean(), param_accs.std()))
-        print(15*"-")
+class Population:
 
+    def __init__(self, n_iters):
+        self.n_iters = n_iters
+        cwd = Path.home()
+        names_path = cwd.joinpath("intertemporal/data/names.txt")
+        file = open(names_path,"r")
+        names = file.readlines()
+        self.names = [element.strip() for element in names]
+    
+    def population_run(self):
+        model_results = np.zeros((len(self.names), self.n_iters))
+        param_results = np.zeros((len(self.names), self.n_iters))
+        for i, name in tqdm(enumerate(self.names)):
+            train, test = load_data(name)
+            df = pd.concat([train, test])
+            exp_collect = ExperimentCollection(df)
+            model_results[i], param_results[i] = exp_collect.cross_val(n_iters=self.n_iters)
+        return model_results, param_results
+
+    def print_results(self):
+        model_results, param_results = self.population_run()
+        print(np.mean(np.mean(model_results, axis=1)))
+        print(np.mean(np.mean(param_results, axis=1)))
+
+#if __name__ == "__main__":
+    #pop = Population(50)
+    #pop.print_results()
+    
+if __name__ == "__main__":   
+    train, test = load_data("laura_ferguson")
+    df = pd.concat([train, test])
+    exp_collect = ExperimentCollection(df)
+    m, p = exp_collect.cross_val(10)
+    print(np.mean(m), np.mean(p))
         
