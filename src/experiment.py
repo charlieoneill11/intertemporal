@@ -106,14 +106,14 @@ class Population:
         print(np.mean(np.mean(model_results, axis=1)))
         print(np.mean(np.mean(param_results, axis=1)))
 
-#if __name__ == "__main__":
-    #pop = Population(50)
-    #pop.print_results()
+if __name__ == "__main__":
+    pop = Population(20)
+    pop.print_results()
     
-if __name__ == "__main__":   
-    train, test = load_data("laura_ferguson")
+"""if __name__ == "__main__":   
+    train, test = load_data("max_kirkby")
     df = pd.concat([train, test])
     exp_collect = ExperimentCollection(df)
-    m, p = exp_collect.cross_val(10)
-    print(np.mean(m), np.mean(p))
+    m, p = exp_collect.cross_val(20)
+    print(np.mean(m), np.mean(p))"""
         
