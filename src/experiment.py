@@ -85,8 +85,8 @@ class Population:
 
     def __init__(self, n_iters):
         self.n_iters = n_iters
-        cwd = Path.home()
-        names_path = cwd.joinpath("intertemporal/data/names.txt")
+        self.cwd = Path.home()
+        names_path = self.cwd.joinpath("intertemporal/data/names.txt")
         file = open(names_path,"r")
         names = file.readlines()
         self.names = [element.strip() for element in names]
@@ -103,17 +103,19 @@ class Population:
 
     def print_results(self):
         model_results, param_results = self.population_run()
+        self.save_results(np.mean(model_results, axis=0), np.mean(param_results, axis=0))
         print(np.mean(np.mean(model_results, axis=1)))
         print(np.mean(np.mean(param_results, axis=1)))
 
+    def save_results(self, model_results, param_results):
+        """Saves the mean accuracies per subject to a CSV file."""
+        df_dict = {'model_x': model_results, 'param_fitting': param_results}
+        df = pd.DataFrame(df_dict)
+        df.to_csv(self.cwd.joinpath("intertemporal/results/accuracies.csv"))
+
+
 if __name__ == "__main__":
-    pop = Population(20)
+    pop = Population(10)
     pop.print_results()
-    
-"""if __name__ == "__main__":   
-    train, test = load_data("max_kirkby")
-    df = pd.concat([train, test])
-    exp_collect = ExperimentCollection(df)
-    m, p = exp_collect.cross_val(20)
-    print(np.mean(m), np.mean(p))"""
+
         
